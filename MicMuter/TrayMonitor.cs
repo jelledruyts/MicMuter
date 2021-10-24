@@ -9,12 +9,23 @@ namespace MicMuter
 {
     public class TrayMonitor : IDisposable
     {
+        #region Constants
+
+        private const string MenuItemTextPrefixToggleMicrophone = "&Toggle Microphone";
+        private const string MenuItemTextPrefixMuteMicrophone = "&Mute Microphone";
+        private const string MenuItemTextPrefixUnmuteMicrophone = "&Unmute Microphone";
+
+        #endregion
+
         #region Fields
 
         private readonly IDictionary<MicrophoneStatus, Icon> microphoneIcons;
         private readonly NotifyIcon notifyIcon;
         private readonly MicrophoneController microphoneController;
         private readonly Configuration configuration;
+        private readonly ToolStripItem toggleMicrophoneMenuItem;
+        private readonly ToolStripItem muteMicrophoneMenuItem;
+        private readonly ToolStripItem unmuteMicrophoneMenuItem;
         private KeyboardHook keyboardHook;
         private MainForm mainForm;
 
@@ -44,12 +55,12 @@ namespace MicMuter
             // Initialize notification icon context menu.
             var contextMenu = new ContextMenuStrip();
             contextMenu.Items.Add("&Settings...", null, (s, e) => ShowSettings());
-            contextMenu.Items.Add("&Visit Website", null, (s, e) => Program.VisitWebsite());
+            contextMenu.Items.Add("&Visit Website", null, (s, e) => Helper.VisitWebsite());
             contextMenu.Items.Add("-");
-            var toggleMicrophoneMenuItem = contextMenu.Items.Add("&Toggle Microphone", null, (s, e) => PerformMicrophoneAction(MicrophoneAction.Toggle));
-            toggleMicrophoneMenuItem.Font = new Font(toggleMicrophoneMenuItem.Font, toggleMicrophoneMenuItem.Font.Style | FontStyle.Bold);
-            contextMenu.Items.Add("&Mute Microphone", null, (s, e) => PerformMicrophoneAction(MicrophoneAction.Mute));
-            contextMenu.Items.Add("&Unmute Microphone", null, (s, e) => PerformMicrophoneAction(MicrophoneAction.Unmute));
+            this.toggleMicrophoneMenuItem = contextMenu.Items.Add(MenuItemTextPrefixToggleMicrophone, null, (s, e) => PerformMicrophoneAction(MicrophoneAction.Toggle));
+            this.toggleMicrophoneMenuItem.Font = new Font(toggleMicrophoneMenuItem.Font, toggleMicrophoneMenuItem.Font.Style | FontStyle.Bold);
+            this.muteMicrophoneMenuItem = contextMenu.Items.Add(MenuItemTextPrefixMuteMicrophone, null, (s, e) => PerformMicrophoneAction(MicrophoneAction.Mute));
+            this.unmuteMicrophoneMenuItem = contextMenu.Items.Add(MenuItemTextPrefixUnmuteMicrophone, null, (s, e) => PerformMicrophoneAction(MicrophoneAction.Unmute));
             contextMenu.Items.Add("-");
             contextMenu.Items.Add("E&xit", null, Exit);
 
@@ -110,14 +121,14 @@ namespace MicMuter
             }
             this.keyboardHook = new KeyboardHook();
             this.keyboardHook.KeyPressed += KeyboardHookPressed;
-            try
+            var failedHotKeys = new List<string>(3);
+            TryRegisterHotKey(this.configuration.MicrophoneToggleHotKeyModifier, this.configuration.MicrophoneToggleHotKey, this.toggleMicrophoneMenuItem, "&Toggle Microphone", failedHotKeys);
+            TryRegisterHotKey(this.configuration.MicrophoneMuteHotKeyModifier, this.configuration.MicrophoneMuteHotKey, this.muteMicrophoneMenuItem, "&Mute Microphone", failedHotKeys);
+            TryRegisterHotKey(this.configuration.MicrophoneUnmuteHotKeyModifier, this.configuration.MicrophoneUnmuteHotKey, this.unmuteMicrophoneMenuItem, "&Unmute Microphone", failedHotKeys);
+            if (failedHotKeys.Count > 0)
             {
-                this.keyboardHook.RegisterHotKey(this.configuration.MicrophoneToggleHotKeyModifier, this.configuration.MicrophoneToggleHotKey);
-            }
-            catch (InvalidOperationException)
-            {
-                // Couldn't register the hot key.
-                this.notifyIcon.ShowBalloonTip(10000, Configuration.AppName, "The keyboard shortcut couldn't be registered, perhaps another app already registered it?", ToolTipIcon.Warning);
+                var failedHotKeysDescription = string.Join(", ", failedHotKeys.Distinct().Select(f => $"\"{f}\""));
+                this.notifyIcon.ShowBalloonTip(15000, Configuration.AppName, $"The {failedHotKeysDescription} keyboard shortcut(s) couldn't be registered, perhaps another app already registered them?", ToolTipIcon.Warning);
             }
 
             // Run on startup.
@@ -134,9 +145,39 @@ namespace MicMuter
             }
         }
 
+        private void TryRegisterHotKey(ModifierKeys hotKeyModifier, Keys hotKey, ToolStripItem menuItem, string menuItemTextPrefix, IList<string> failedHotKeys)
+        {
+            menuItem.Text = menuItemTextPrefix;
+            if (hotKey != Keys.None)
+            {
+                var description = Helper.GetHotKeyDescription(hotKeyModifier, hotKey);
+                try
+                {
+                    this.keyboardHook.RegisterHotKey(hotKeyModifier, hotKey);
+                    menuItem.Text += $" ({description})";
+                }
+                catch (InvalidOperationException)
+                {
+                    // Couldn't register the hot key; add the description to the failure list so it can be displayed in the error.
+                    failedHotKeys.Add(description);
+                }
+            }
+        }
+
         private void KeyboardHookPressed(object sender, KeyPressedEventArgs e)
         {
-            PerformMicrophoneAction(MicrophoneAction.Toggle);
+            if (e.Modifier == this.configuration.MicrophoneToggleHotKeyModifier && e.Key == this.configuration.MicrophoneToggleHotKey)
+            {
+                PerformMicrophoneAction(MicrophoneAction.Toggle);
+            }
+            else if (e.Modifier == this.configuration.MicrophoneMuteHotKeyModifier && e.Key == this.configuration.MicrophoneMuteHotKey)
+            {
+                PerformMicrophoneAction(MicrophoneAction.Mute);
+            }
+            else if (e.Modifier == this.configuration.MicrophoneUnmuteHotKeyModifier && e.Key == this.configuration.MicrophoneUnmuteHotKey)
+            {
+                PerformMicrophoneAction(MicrophoneAction.Unmute);
+            }
         }
 
         private void PerformMicrophoneAction(MicrophoneAction action)
@@ -148,23 +189,7 @@ namespace MicMuter
         {
             var status = this.microphoneController.GetStatus();
             this.notifyIcon.Icon = this.microphoneIcons[status];
-            this.notifyIcon.Text = GetStatusDescription(status);
-        }
-
-        private string GetStatusDescription(MicrophoneStatus status)
-        {
-            if (status == MicrophoneStatus.NotInUse)
-            {
-                return "No microphone is currently in use.";
-            }
-            else if (status == MicrophoneStatus.Muted)
-            {
-                return "Your microphone is currently muted.";
-            }
-            else
-            {
-                return "Your microphone is currently unmuted.";
-            }
+            this.notifyIcon.Text = Helper.GetStatusDescription(status);
         }
 
         #endregion

@@ -10,9 +10,13 @@ namespace MicMuter
         public const string AppName = "MicMuter";
         public const string AppWebsite = "https://github.com/jelledruyts/MicMuter";
         private const string ConfigurationRootKey = @"SOFTWARE\" + AppName;
-        // Default shortcut is Win+Shift+A like Powertoys (https://docs.microsoft.com/en-us/windows/powertoys/video-conference-mute).
+        // Default shortcut is "Windows+Shift+A" like Powertoys (https://docs.microsoft.com/en-us/windows/powertoys/video-conference-mute).
         private const ModifierKeys defaultMicrophoneToggleHotKeyModifier = (ModifierKeys.Win | ModifierKeys.Shift);
         private const Keys defaultMicrophoneToggleHotKey = Keys.A;
+        private const ModifierKeys defaultMicrophoneMuteHotKeyModifier = ModifierKeys.None;
+        private const Keys defaultMicrophoneMuteHotKey = Keys.None;
+        private const ModifierKeys defaultMicrophoneUnmuteHotKeyModifier = ModifierKeys.None;
+        private const Keys defaultMicrophoneUnmuteHotKey = Keys.None;
         private const bool defaultRunOnStartup = false;
 
         #endregion
@@ -23,6 +27,10 @@ namespace MicMuter
         public bool RunOnStartup { get; set; }
         public ModifierKeys MicrophoneToggleHotKeyModifier { get; set; }
         public Keys MicrophoneToggleHotKey { get; set; }
+        public ModifierKeys MicrophoneMuteHotKeyModifier { get; set; }
+        public Keys MicrophoneMuteHotKey { get; set; }
+        public ModifierKeys MicrophoneUnmuteHotKeyModifier { get; set; }
+        public Keys MicrophoneUnmuteHotKey { get; set; }
 
         #endregion
 
@@ -37,6 +45,10 @@ namespace MicMuter
                 configuration.RunOnStartup = GetIntValue(rootKey, nameof(configuration.RunOnStartup), defaultRunOnStartup ? 1 : 0) != 0;
                 configuration.MicrophoneToggleHotKeyModifier = (ModifierKeys)GetIntValue(rootKey, nameof(configuration.MicrophoneToggleHotKeyModifier), (int)defaultMicrophoneToggleHotKeyModifier);
                 configuration.MicrophoneToggleHotKey = (Keys)GetIntValue(rootKey, nameof(configuration.MicrophoneToggleHotKey), (int)defaultMicrophoneToggleHotKey);
+                configuration.MicrophoneMuteHotKeyModifier = (ModifierKeys)GetIntValue(rootKey, nameof(configuration.MicrophoneMuteHotKeyModifier), (int)defaultMicrophoneMuteHotKeyModifier);
+                configuration.MicrophoneMuteHotKey = (Keys)GetIntValue(rootKey, nameof(configuration.MicrophoneMuteHotKey), (int)defaultMicrophoneMuteHotKey);
+                configuration.MicrophoneUnmuteHotKeyModifier = (ModifierKeys)GetIntValue(rootKey, nameof(configuration.MicrophoneUnmuteHotKeyModifier), (int)defaultMicrophoneUnmuteHotKeyModifier);
+                configuration.MicrophoneUnmuteHotKey = (Keys)GetIntValue(rootKey, nameof(configuration.MicrophoneUnmuteHotKey), (int)defaultMicrophoneUnmuteHotKey);
                 return configuration;
             }
         }
@@ -67,6 +79,10 @@ namespace MicMuter
                     rootKey.SetValue(nameof(configuration.RunOnStartup), configuration.RunOnStartup ? 1 : 0, RegistryValueKind.DWord);
                     rootKey.SetValue(nameof(configuration.MicrophoneToggleHotKeyModifier), configuration.MicrophoneToggleHotKeyModifier, RegistryValueKind.DWord);
                     rootKey.SetValue(nameof(configuration.MicrophoneToggleHotKey), configuration.MicrophoneToggleHotKey, RegistryValueKind.DWord);
+                    rootKey.SetValue(nameof(configuration.MicrophoneMuteHotKeyModifier), configuration.MicrophoneMuteHotKeyModifier, RegistryValueKind.DWord);
+                    rootKey.SetValue(nameof(configuration.MicrophoneMuteHotKey), configuration.MicrophoneMuteHotKey, RegistryValueKind.DWord);
+                    rootKey.SetValue(nameof(configuration.MicrophoneUnmuteHotKeyModifier), configuration.MicrophoneUnmuteHotKeyModifier, RegistryValueKind.DWord);
+                    rootKey.SetValue(nameof(configuration.MicrophoneUnmuteHotKey), configuration.MicrophoneUnmuteHotKey, RegistryValueKind.DWord);
                 }
             }
         }

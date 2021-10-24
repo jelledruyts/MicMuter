@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Windows.Forms;
 
 namespace MicMuter
@@ -18,11 +17,6 @@ namespace MicMuter
             {
                 Application.Run();
             }
-        }
-
-        public static void VisitWebsite()
-        {
-            Process.Start(new ProcessStartInfo { FileName = Configuration.AppWebsite, UseShellExecute = true });
         }
     }
 }

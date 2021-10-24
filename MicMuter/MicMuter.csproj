@@ -56,6 +56,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Configuration.cs" />
+    <Compile Include="Helper.cs" />
     <Compile Include="KeyboardHook.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
@@ -78,7 +79,6 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Resources\Microphone.ico" />
     <EmbeddedResource Include="Resources\MicrophoneMuted.ico" />
     <EmbeddedResource Include="Resources\MicrophoneNotInUse.ico" />
     <EmbeddedResource Include="Resources\MicrophoneUnmuted.ico" />
