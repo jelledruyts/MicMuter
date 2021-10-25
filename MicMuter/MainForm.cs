@@ -42,9 +42,9 @@ namespace MicMuter
             if (!ExcludedModifierKeys.Contains(e.KeyCode))
             {
                 var keyCode = e.KeyCode;
-                if (keyCode == Keys.Back)
+                if (keyCode == Keys.Back || keyCode == Keys.Escape)
                 {
-                    // Pressing "back" means clear the hot key.
+                    // Pressing "backspace" or "escape" means clear the hot key.
                     keyCode = Keys.None;
                 }
                 var textBox = (TextBox)sender;
