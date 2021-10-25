@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Linq;
-using System.Reflection;
 using System.Windows.Forms;
 
 namespace MicMuter
@@ -25,7 +23,7 @@ namespace MicMuter
         {
             InitializeComponent();
             this.configuration = configuration;
-            this.Text = $"{Configuration.AppName} v{Assembly.GetEntryAssembly().GetName().Version.ToString(3)}";
+            this.Text = $"{Configuration.AppName} v{Helper.GetApplicationVersion()}";
             this.websiteLinkLabel.Text = Configuration.AppWebsite;
             this.websiteLinkLabel.Links.Add(0, this.websiteLinkLabel.Text.Length);
 

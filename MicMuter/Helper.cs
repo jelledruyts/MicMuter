@@ -1,10 +1,16 @@
 using System.Diagnostics;
+using System.Reflection;
 using System.Windows.Forms;
 
 namespace MicMuter
 {
     public static class Helper
     {
+        public static string GetApplicationVersion()
+        {
+            return Assembly.GetEntryAssembly().GetName().Version.ToString(3);
+        }
+        
         public static void VisitWebsite()
         {
             Process.Start(new ProcessStartInfo { FileName = Configuration.AppWebsite, UseShellExecute = true });

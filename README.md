@@ -4,10 +4,13 @@
 
 The application is intentionally kept minimal and runs as a single portable executable: no installer required, simply [grab the latest release](https://github.com/jelledruyts/MicMuter/releases/latest), extract the zip file and run! You can also configure it to run at startup so you won't have to worry about it again.
 
-You do need [.NET Framework 4.7.2](https://dotnet.microsoft.com/download/dotnet-framework/net472) to run but this comes preinstalled with Windows 10 April 2018 Update or newer - so it's very likely you already have this.
+> Note: you do need [.NET Framework 4.7.2](https://dotnet.microsoft.com/download/dotnet-framework/net472) to run but this comes preinstalled with Windows 10 April 2018 Update or newer - so it's very likely you already have this.
+
+If you rather not keep the application running but just want to toggle the microphone from the command-line or via other automation tools like [AutoHotkey](https://www.autohotkey.com/), you can simply invoke it with the command-line argument `/toggle`, `/mute` or `/unmute`.
 
 ### What's New
 
+- **v1.2.7968** (October 25, 2021): Added command-line options.
 - **v1.1.7967** (October 24, 2021): Added shortcut keys for mute and unmute.
 - **v1.0.7966** (October 23, 2021): Initial version.
 

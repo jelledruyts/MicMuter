@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
@@ -71,6 +72,7 @@ namespace MicMuter
             {
                 if (e.Button == MouseButtons.Left)
                 {
+                    Logger.LogMessage(TraceEventType.Information, $"Notification icon was clicked, toggling microphone");
                     PerformMicrophoneAction(MicrophoneAction.Toggle);
                 }
             };
@@ -101,6 +103,7 @@ namespace MicMuter
                 {
                     if (this.mainForm.DialogResult == DialogResult.OK)
                     {
+                        Logger.LogMessage(TraceEventType.Information, $"Settings changed, saving configuration");
                         Configuration.Save(this.configuration);
                         ApplyConfiguration();
                         UpdateUI();
@@ -136,10 +139,12 @@ namespace MicMuter
             {
                 if (this.configuration.RunOnStartup)
                 {
+                    Logger.LogMessage(TraceEventType.Information, $"Applying Windows setting to run application on startup from \"{Application.ExecutablePath}\"");
                     runKey.SetValue(Configuration.AppName, $"\"{Application.ExecutablePath}\"");
                 }
                 else
                 {
+                    Logger.LogMessage(TraceEventType.Information, $"Removing Windows setting to run application on startup from \"{Application.ExecutablePath}\"");
                     runKey.DeleteValue(Configuration.AppName, false);
                 }
             }
@@ -153,12 +158,14 @@ namespace MicMuter
                 var description = Helper.GetHotKeyDescription(hotKeyModifier, hotKey);
                 try
                 {
+                    Logger.LogMessage(TraceEventType.Information, $"Registering hot key for \"{description}\"");
                     this.keyboardHook.RegisterHotKey(hotKeyModifier, hotKey);
                     menuItem.Text += $" ({description})";
                 }
                 catch (InvalidOperationException)
                 {
                     // Couldn't register the hot key; add the description to the failure list so it can be displayed in the error.
+                    Logger.LogMessage(TraceEventType.Error, $"Couldn't register hot key for \"{description}\"");
                     failedHotKeys.Add(description);
                 }
             }
@@ -166,6 +173,7 @@ namespace MicMuter
 
         private void KeyboardHookPressed(object sender, KeyPressedEventArgs e)
         {
+            Logger.LogMessage(TraceEventType.Information, $"Detected hot key \"{Helper.GetHotKeyDescription(e.Modifier, e.Key)}\"");
             if (e.Modifier == this.configuration.MicrophoneToggleHotKeyModifier && e.Key == this.configuration.MicrophoneToggleHotKey)
             {
                 PerformMicrophoneAction(MicrophoneAction.Toggle);
@@ -187,7 +195,9 @@ namespace MicMuter
 
         private void UpdateUI()
         {
+            Logger.LogMessage(TraceEventType.Verbose, $"Updating UI");
             var status = this.microphoneController.GetStatus();
+            Logger.LogMessage(TraceEventType.Verbose, $"Setting UI status to \"{status}\"");
             this.notifyIcon.Icon = this.microphoneIcons[status];
             this.notifyIcon.Text = Helper.GetStatusDescription(status);
         }
