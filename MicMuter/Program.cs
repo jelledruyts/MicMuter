@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Windows.Forms;
 
 namespace MicMuter
@@ -27,11 +28,22 @@ namespace MicMuter
             else
             {
                 // No command-line action was requested, start the application normally.
-                Application.EnableVisualStyles();
-                Application.SetCompatibleTextRenderingDefault(false);
-                using (var monitor = new TrayMonitor())
+                using (var singleInstanceMutex = new Mutex(false, "MicMuter-eb099b74-04cd-42da-a111-013a78dedb8e"))
                 {
-                    Application.Run();
+                    if (singleInstanceMutex.WaitOne(0, false))
+                    {
+                        Application.EnableVisualStyles();
+                        Application.SetCompatibleTextRenderingDefault(false);
+                        using (var monitor = new TrayMonitor())
+                        {
+                            Application.Run();
+                        }
+                    }
+                    else
+                    {
+                        MessageBox.Show($"Another instance of the application is already running. Check the notification area for the {Configuration.AppName} icon, as it could be in the hidden \"overflow\" area.", Configuration.AppName, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        Logger.LogMessage(TraceEventType.Information, $"Another instance of the application is already running, exiting...");
+                    }
                 }
             }
             Logger.LogMessage(TraceEventType.Information, $"{Configuration.AppName} v{Helper.GetApplicationVersion()} exited");

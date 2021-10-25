@@ -10,7 +10,7 @@ If you rather not keep the application running but just want to toggle the micro
 
 ### What's New
 
-- **v1.2.7968** (October 25, 2021): Added command-line options.
+- **v1.2.7968** (October 25, 2021): Added command-line options; app now detects if it's already running.
 - **v1.1.7967** (October 24, 2021): Added shortcut keys for mute and unmute.
 - **v1.0.7966** (October 23, 2021): Initial version.
 
