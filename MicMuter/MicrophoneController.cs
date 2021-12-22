@@ -8,14 +8,17 @@ using NAudio.CoreAudioApi.Interfaces;
 
 namespace MicMuter
 {
-    public class MicrophoneController : IDisposable
+    public class MicrophoneController : IDisposable, IMMNotificationClient
     {
-        private ICollection<MMDevice> microphoneDevices = null;
+        private MMDeviceEnumerator deviceEnumerator;
+        private ICollection<MMDevice> microphoneDevices;
 
         public event EventHandler OnMicrophoneStateChanged;
 
         public MicrophoneController()
         {
+            this.deviceEnumerator = new MMDeviceEnumerator();
+            this.deviceEnumerator.RegisterEndpointNotificationCallback(this);
             RefreshMicrophoneDevices();
         }
 
@@ -23,20 +26,22 @@ namespace MicMuter
         {
             DisposeMicrophoneDevices();
             Logger.LogMessage(TraceEventType.Verbose, $"Enumerating microphone devices...");
-            using (var enumerator = new MMDeviceEnumerator())
+            this.microphoneDevices = this.deviceEnumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active).ToArray();
+            foreach (var microphoneDevice in this.microphoneDevices)
             {
-                this.microphoneDevices = enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active).ToArray();
-                foreach (var microphoneDevice in this.microphoneDevices)
-                {
-                    Logger.LogMessage(TraceEventType.Verbose, $"Found device \"{microphoneDevice.FriendlyName}\"");
-                    microphoneDevice.AudioEndpointVolume.OnVolumeNotification += MicrophoneStateChanged;
-                }
+                Logger.LogMessage(TraceEventType.Verbose, $"Found device \"{microphoneDevice.FriendlyName}\"");
+                microphoneDevice.AudioEndpointVolume.OnVolumeNotification += MicrophoneStateChanged;
             }
         }
 
         private void MicrophoneStateChanged(AudioVolumeNotificationData e)
         {
             Logger.LogMessage(TraceEventType.Verbose, $"Microphone state changed");
+            RaiseOnMicrophoneStateChanged();
+        }
+
+        private void RaiseOnMicrophoneStateChanged()
+        {
             // Allow the OS microphone status to settle before raising the notification.
             Thread.Sleep(100);
             this.OnMicrophoneStateChanged?.Invoke(this, EventArgs.Empty);
@@ -45,6 +50,8 @@ namespace MicMuter
         public void Dispose()
         {
             DisposeMicrophoneDevices();
+            this.deviceEnumerator.UnregisterEndpointNotificationCallback(this);
+            this.deviceEnumerator.Dispose();
         }
 
         private void DisposeMicrophoneDevices()
@@ -85,14 +92,14 @@ namespace MicMuter
             var output = new List<Microphone>(this.microphoneDevices.Count);
             foreach (var microphoneDevice in this.microphoneDevices)
             {
-                Logger.LogMessage(TraceEventType.Verbose, $"Checking device \"{microphoneDevice.FriendlyName}\"...");
+                Logger.LogMessage(TraceEventType.Verbose, $"Checking device \"{microphoneDevice.FriendlyName}\": mute={microphoneDevice.AudioEndpointVolume.Mute}");
                 // Check if the microphone is actively being used in an audio session.
                 var status = MicrophoneStatus.NotInUse;
                 microphoneDevice.AudioSessionManager.RefreshSessions();
                 for (var i = 0; i < microphoneDevice.AudioSessionManager.Sessions.Count; i++)
                 {
                     var session = microphoneDevice.AudioSessionManager.Sessions[i];
-                    Logger.LogMessage(TraceEventType.Verbose, $"Audio session {1}: state={session.State}, mute={session.SimpleAudioVolume.Mute}");
+                    Logger.LogMessage(TraceEventType.Verbose, $"Audio session {i}: state={session.State}, mute={session.SimpleAudioVolume.Mute}");
                     if (session.State == AudioSessionState.AudioSessionStateActive)
                     {
                         // The microphone is in an active audio session; check whether it's muted or not.
@@ -160,5 +167,41 @@ namespace MicMuter
             }
             return shouldMute;
         }
+
+        #region IMMNotificationClient Implementation
+
+        void IMMNotificationClient.OnDeviceStateChanged(string deviceId, DeviceState newState)
+        {
+            Logger.LogMessage(TraceEventType.Verbose, $"IMMNotificationClient.OnDeviceStateChanged: {deviceId} => {newState}");
+            this.RefreshMicrophoneDevices();
+            this.RaiseOnMicrophoneStateChanged();
+        }
+
+        void IMMNotificationClient.OnDeviceAdded(string deviceId)
+        {
+            Logger.LogMessage(TraceEventType.Verbose, $"IMMNotificationClient.OnDeviceAdded: {deviceId}");
+            this.RefreshMicrophoneDevices();
+            this.RaiseOnMicrophoneStateChanged();
+        }
+
+        void IMMNotificationClient.OnDeviceRemoved(string deviceId)
+        {
+            Logger.LogMessage(TraceEventType.Verbose, $"IMMNotificationClient.OnDeviceRemoved: {deviceId}");
+            this.RefreshMicrophoneDevices();
+            this.RaiseOnMicrophoneStateChanged();
+        }
+
+        void IMMNotificationClient.OnDefaultDeviceChanged(DataFlow flow, Role role, string defaultDeviceId)
+        {
+            Logger.LogMessage(TraceEventType.Verbose, $"IMMNotificationClient.OnDefaultDeviceChanged: {defaultDeviceId} (flow={flow}; role={role})");
+            this.RefreshMicrophoneDevices();
+        }
+
+        void IMMNotificationClient.OnPropertyValueChanged(string deviceId, PropertyKey key)
+        {
+            Logger.LogMessage(TraceEventType.Verbose, $"IMMNotificationClient.OnPropertyValueChanged: {deviceId} (formatId={key.formatId}; propertyId={key.propertyId})");
+        }
+
+        #endregion
     }
 }
